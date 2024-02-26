@@ -101,7 +101,7 @@ def update_place(place_id):
     except Exception:
         abort(500)
 
-# new code 
+# new code
 
 @app_views.route('/places_search', methods=['POST'], strict_slashes=False)
 def places_search():
