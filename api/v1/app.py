@@ -26,63 +26,87 @@ app.register_blueprint(app_views)
 @app.teardown_appcontext
 def teardown_db(exception):
     """
-    after each request, this method calls .close() (i.e. .remove()) on
+    After each request, this method calls .close() (i.e., .remove()) on
     the current SQLAlchemy Session
     """
-    storage.close()
+    try:
+        storage.close()
+    except Exception as e:
+        # Handle specific exception or log the error
+        pass
 
 
 @app.errorhandler(404)
 def handle_404(exception):
     """
-    handles 404 errors, in the event that global error handler fails
+    Handles 404 errors, in the event that global error handler fails
     """
-    code = exception.__str__().split()[0]
-    description = exception.description
-    message = {'error': description}
-    return make_response(jsonify(message), code)
+    try:
+        code = exception.__str__().split()[0]
+        description = exception.description
+        message = {'error': description}
+        return make_response(jsonify(message), code)
+    except Exception as e:
+        # Handle specific exception or log the error
+        pass
 
 
 @app.errorhandler(400)
 def handle_404(exception):
     """
-    handles 400 errros, in the event that global error handler fails
+    Handles 400 errors, in the event that global error handler fails
     """
-    code = exception.__str__().split()[0]
-    description = exception.description
-    message = {'error': description}
-    return make_response(jsonify(message), code)
+    try:
+        code = exception.__str__().split()[0]
+        description = exception.description
+        message = {'error': description}
+        return make_response(jsonify(message), code)
+    except Exception as e:
+        # Handle specific exception or log the error
+        pass
 
 
 @app.errorhandler(Exception)
 def global_error_handler(err):
     """
-        Global Route to handle All Error Status Codes
+    Global route to handle all error status codes
     """
-    if isinstance(err, HTTPException):
-        if type(err).__name__ == 'NotFound':
-            err.description = "Not found"
-        message = {'error': err.description}
-        code = err.code
-    else:
-        message = {'error': err}
-        code = 500
-    return make_response(jsonify(message), code)
+    try:
+        if isinstance(err, HTTPException):
+            if type(err).__name__ == 'NotFound':
+                err.description = "Not found"
+            message = {'error': err.description}
+            code = err.code
+        else:
+            message = {'error': err}
+            code = 500
+        return make_response(jsonify(message), code)
+    except Exception as e:
+        # Handle specific exception or log the error
+        pass
 
 
 def setup_global_errors():
     """
-    This updates HTTPException Class with custom error function
+    Updates HTTPException Class with custom error function
     """
-    for cls in HTTPException.__subclasses__():
-        app.register_error_handler(cls, global_error_handler)
+    try:
+        for cls in HTTPException.__subclasses__():
+            app.register_error_handler(cls, global_error_handler)
+    except Exception as e:
+        # Handle specific exception or log the error
+        pass
 
 
 if __name__ == "__main__":
     """
     MAIN Flask App
     """
-    # initializes global error handling
-    setup_global_errors()
-    # start Flask app
-    app.run(host=host, port=port)
+    try:
+        # Initializes global error handling
+        setup_global_errors()
+        # Start Flask app
+        app.run(host=host, port=port)
+    except Exception as e:
+        # Handle specific exception or log the error
+        pass
