@@ -1,105 +1,227 @@
 #!/usr/bin/python3
 """
-Contains the class DBStorage
+Database engine
 """
 
-import models
-from models.amenity import Amenity
-from models.base_model import BaseModel, Base
-from models.city import City
-from models.place import Place
-from models.review import Review
-from models.state import State
-from models.user import User
-from os import getenv
-import sqlalchemy
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
-
-classes = {"Amenity": Amenity, "City": City,
-           "Place": Place, "Review": Review, "State": State, "User": User}
+import os
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import sessionmaker, scoped_session
+from models.base_model import Base
+from models import base_model, amenity, city, place, review, state, user
 
 
 class DBStorage:
-    """interaacts with the MySQL database"""
+    """
+    Handles long-term storage of all class instances.
+    """
+
+    CNC = {
+        'Amenity': amenity.Amenity,
+        'City': city.City,
+        'Place': place.Place,
+        'Review': review.Review,
+        'State': state.State,
+        'User': user.User
+    }
+
+    """
+    Handles storage for the database.
+    """
+
     __engine = None
     __session = None
-    __classes = [User, State, City, Amenity, Place, Review]
 
     def __init__(self):
-        """Instantiate a DBStorage object"""
-        HBNB_MYSQL_USER = getenv('HBNB_MYSQL_USER')
-        HBNB_MYSQL_PWD = getenv('HBNB_MYSQL_PWD')
-        HBNB_MYSQL_HOST = getenv('HBNB_MYSQL_HOST')
-        HBNB_MYSQL_DB = getenv('HBNB_MYSQL_DB')
-        HBNB_ENV = getenv('HBNB_ENV')
-        self.__engine = create_engine('mysql+mysqldb://{}:{}@{}/{}'.
-                                      format(HBNB_MYSQL_USER,
-                                             HBNB_MYSQL_PWD,
-                                             HBNB_MYSQL_HOST,
-                                             HBNB_MYSQL_DB))
-        if HBNB_ENV == "test":
-            Base.metadata.drop_all(self.__engine)
+        """
+        Initializes the database engine.
+        """
+        try:
+            self.__engine = create_engine(
+                'mysql+mysqldb://{}:{}@{}/{}'.format(
+                    os.environ.get('HBNB_MYSQL_USER'),
+                    os.environ.get('HBNB_MYSQL_PWD'),
+                    os.environ.get('HBNB_MYSQL_HOST'),
+                    os.environ.get('HBNB_MYSQL_DB')))
+            if os.environ.get("HBNB_ENV") == 'test':
+                Base.metadata.drop_all(self.__engine)
+        except Exception as e:
+            raise Exception("Failed to initialize the database engine.") from e
 
     def all(self, cls=None):
-        """query on the current database session"""
-        new_dict = {}
-        for clss in classes:
-            if cls is None or cls is classes[clss] or cls is clss:
-                objs = self.__session.query(classes[clss]).all()
-                for obj in objs:
-                    key = obj.__class__.__name__ + '.' + obj.id
-                    new_dict[key] = obj
-        return (new_dict)
+        """
+        Returns a dictionary of all objects.
+
+        Parameters:
+        - cls (str): The class name (optional).
+
+        Returns:
+        - dict: A dictionary of objects with the format "ClassName.object_id".
+
+        Raises:
+        - Exception: If an error occurs while fetching the objects.
+        """
+        try:
+            obj_dict = {}
+            if cls is not None:
+                a_query = self.__session.query(DBStorage.CNC[cls])
+                for obj in a_query:
+                    obj_ref = "{}.{}".format(type(obj).__name__, obj.id)
+                    obj_dict[obj_ref] = obj
+                return obj_dict
+
+            for c in DBStorage.CNC.values():
+                a_query = self.__session.query(c)
+                for obj in a_query:
+                    obj_ref = "{}.{}".format(type(obj).__name__, obj.id)
+                    obj_dict[obj_ref] = obj
+            return obj_dict
+        except Exception as e:
+            raise Exception("Failed to fetch objects from the DB") from e
 
     def new(self, obj):
-        """add the object to the current database session"""
-        self.__session.add(obj)
+        """
+        Adds objects to the current database session.
+
+        Parameters:
+        - obj (object): The object to be added.
+
+        Raises:
+        - Exception: If an error occurs while adding the object.
+        """
+        try:
+            self.__session.add(obj)
+        except Exception as e:
+            raise Exception("Failed to add object to the database.") from e
 
     def save(self):
-        """commit all changes of the current database session"""
-        self.__session.commit()
+        """
+        Commits all changes of the current database session.
+
+        Raises:
+        - Exception: If an error occurs while saving changes.
+        """
+        try:
+            self.__session.commit()
+        except Exception as e:
+            raise Exception("Failed to save changes to the database.") from e
+
+    def rollback_session(self):
+        """
+        Rolls back a session in the event of an exception.
+
+        Raises:
+        - Exception: If an error occurs while rolling back the session.
+        """
+        try:
+            self.__session.rollback()
+        except Exception as e:
+            raise Exception("Failed to rollback the database session.") from e
 
     def delete(self, obj=None):
-        """delete from the current database session obj if not None"""
-        if obj is not None:
-            self.__session.delete(obj)
+        """
+        Deletes an object from the current database session if not None.
+
+        Parameters:
+        - obj (object): The object to be deleted (optional).
+
+        Raises:
+        - Exception: If an error occurs while deleting the object.
+        """
+        try:
+            if obj:
+                self.__session.delete(obj)
+                self.save()
+        except Exception as e:
+            raise Exception("Failed to delete object from
+                            the database.") from e
+
+    def delete_all(self):
+        """
+        Deletes all stored objects (for testing purposes).
+
+        Raises:
+        - Exception: If an error occurs while deleting the objects.
+        """
+        try:
+            for c in DBStorage.CNC.values():
+                a_query = self.__session.query(c)
+                all_objs = [obj for obj in a_query]
+                for obj in range(len(all_objs)):
+                    to_delete = all_objs.pop(0)
+                    to_delete.delete()
+            self.save()
+        except Exception as e:
+            raise Exception("Failed to delete all objects
+                            from the database.") from e
 
     def reload(self):
-        """reloads data from the database"""
-        Base.metadata.create_all(self.__engine)
-        sess_factory = sessionmaker(bind=self.__engine, expire_on_commit=False)
-        Session = scoped_session(sess_factory)
-        self.__session = Session
+        """
+        Creates all tables in the database and session from the engine.
+
+        Raises:
+        - Exception: If an error occurs while reloading the tables and session.
+        """
+        try:
+            Base.metadata.create_all(self.__engine)
+            self.__session = scoped_session(
+                sessionmaker(
+                    bind=self.__engine,
+                    expire_on_commit=False))
+        except Exception as e:
+            raise Exception("Failed to reload the database
+                            tables and session.") from e
 
     def close(self):
-        """call remove() method on the private session attribute"""
-        self.__session.remove()
+        """
+        Closes the database session.
+
+        Raises:
+        - Exception: If an error occurs while closing the session.
+        """
+        try:
+            self.__session.remove()
+        except Exception as e:
+            raise Exception("Failed to close the database session.") from e
 
     def get(self, cls, id):
         """
-        Retrieves an object based on the class and its ID
-        Args:
-        cls (class): The class of the object
-        id (str): The ID of the object
+        Retrieves one object based on class name and id.
+
+        Parameters:
+        - cls (str): The class name.
+        - id (str): The object id.
+
         Returns:
-        The object if found, None otherwise
+        - object: The retrieved object.
+
+        Raises:
+        - Exception: If an error occurs while retrieving the object.
         """
-        key = "{}.{}".format(cls.__name__, id)
-        return self.__session.query(cls).get(id)
+        try:
+            if cls and id:
+                fetch = "{}.{}".format(cls, id)
+                all_obj = self.all(cls)
+                return all_obj.get(fetch)
+            return None
+        except Exception as e:
+            raise Exception("Failed to retrieve the object
+                            from the database.") from e
 
     def count(self, cls=None):
         """
-        Counts the number of objects in storage
-        Args:
-        cls (class, optional): The class to filter the count (default: None)
+        Returns the count of all objects in storage.
+
+        Parameters:
+        - cls (str): The class name (optional).
+
         Returns:
-        The number of objects in storage
+        - int: The count of objects.
+
+        Raises:
+        - Exception: If an error occurs while counting the objects.
         """
-        if cls:
-            return self.__session.query(cls).count()
-        else:
-            count = 0
-            for cls in self.__classes:
-                count += self.__session.query(cls).count()
-            return count
+        try:
+            return len(self.all(cls))
+        except Exception as e:
+            raise Exception("Failed to count the objects
+                            in the database.") from e
