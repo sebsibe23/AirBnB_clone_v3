@@ -24,7 +24,6 @@ class DBStorage:
     """interaacts with the MySQL database"""
     __engine = None
     __session = None
-    __classes = [User, State, City, Amenity, Place, Review]
 
     def __init__(self):
         """Instantiate a DBStorage object"""
@@ -75,31 +74,3 @@ class DBStorage:
     def close(self):
         """call remove() method on the private session attribute"""
         self.__session.remove()
-
-    def get(self, cls, id):
-        """
-        Retrieves an object based on the class and its ID
-        Args:
-        cls (class): The class of the object
-        id (str): The ID of the object
-        Returns:
-        The object if found, None otherwise
-        """
-        key = "{}.{}".format(cls.__name__, id)
-        return self.__session.query(cls).get(id)
-
-    def count(self, cls=None):
-        """
-        Counts the number of objects in storage
-        Args:
-        cls (class, optional): The class to filter the count (default: None)
-        Returns:
-        The number of objects in storage
-        """
-        if cls:
-            return self.__session.query(cls).count()
-        else:
-            count = 0
-            for cls in self.__classes:
-                count += self.__session.query(cls).count()
-            return count

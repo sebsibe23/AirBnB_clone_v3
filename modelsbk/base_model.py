@@ -58,20 +58,17 @@ class BaseModel:
         models.storage.new(self)
         models.storage.save()
 
-    def to_dict(self, save_to_disk=False):
-        """
-        Returns a dictionary representation of the instance.
-        """
-        try:
-            dictionary = self.__dict__.copy()
-            if not save_to_disk and 'password' in dictionary:
-                del dictionary['password']
-            dictionary['__class__'] = self.__class__.__name__
-            dictionary['created_at'] = self.created_at.isoformat()
-            dictionary['updated_at'] = self.updated_at.isoformat()
-            return dictionary
-        except Exception as e:
-            raise Exception("Error setting password: " + str(e))
+    def to_dict(self):
+        """returns a dictionary containing all keys/values of the instance"""
+        new_dict = self.__dict__.copy()
+        if "created_at" in new_dict:
+            new_dict["created_at"] = new_dict["created_at"].strftime(time)
+        if "updated_at" in new_dict:
+            new_dict["updated_at"] = new_dict["updated_at"].strftime(time)
+        new_dict["__class__"] = self.__class__.__name__
+        if "_sa_instance_state" in new_dict:
+            del new_dict["_sa_instance_state"]
+        return new_dict
 
     def delete(self):
         """delete the current instance from the storage"""

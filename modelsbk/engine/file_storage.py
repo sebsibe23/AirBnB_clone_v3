@@ -48,28 +48,15 @@ class FileStorage:
         with open(self.__file_path, 'w') as f:
             json.dump(json_objects, f)
 
-    """def reload(self):
-        deserializes the JSON file to __objects
+    def reload(self):
+        """deserializes the JSON file to __objects"""
         try:
             with open(self.__file_path, 'r') as f:
                 jo = json.load(f)
             for key in jo:
                 self.__objects[key] = classes[jo[key]["__class__"]](**jo[key])
-        # except:
-        except Exception as e:
-            raise e
-    """        # pass
-    def reload(self):
-        from os import path
-
-        if not path.isfile(self.__file_path):
-            with open(self.__file_path, 'w') as f:
-                f.write("{}")
-        try:
-            with open(self.__file_path, 'r') as f:
-                data = json.load(f)
-        except Exception as e:
-            raise e
+        except:
+            pass
 
     def delete(self, obj=None):
         """delete obj from __objects if it’s inside"""
@@ -81,29 +68,3 @@ class FileStorage:
     def close(self):
         """call reload() method for deserializing the JSON file to objects"""
         self.reload()
-
-    def get(self, cls, id):
-        """
-        Retrieves an object based on the class and its ID
-        Args:
-        cls (class): The class of the object
-        id (str): The ID of the object
-        Returns:
-        The object if found, None otherwise
-        """
-        objects = self.all(cls)
-        for obj in objects.values():
-            if obj.id == id:
-                return obj
-        return None
-
-    def count(self, cls=None):
-        """
-        Counts the number of objects in storage
-        Args:
-        cls (class, optional): The class to filter the count (default: None)
-        Returns:
-        The number of objects in storage
-        """
-        objects = self.all(cls)
-        return len(objects)
