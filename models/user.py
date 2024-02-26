@@ -12,7 +12,7 @@ class User(BaseModel, Base):
     Representation of a user with secure password storage.
     """
 
-    if models.storage_t == 'db':
+    if models.storage == 'db':
         __tablename__ = 'users'
         email = Column(String(128), nullable=False)
         password = Column(String(128), nullable=False)
