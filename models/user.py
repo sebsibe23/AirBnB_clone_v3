@@ -1,61 +1,71 @@
 #!/usr/bin/python3
+"""
+User Class from Models Module
+"""
+
 import hashlib
+import os
 from models.base_model import BaseModel, Base
-from os import getenv
-import sqlalchemy
-from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Float
+
+STORAGE_TYPE = os.environ.get('HBNB_TYPE_STORAGE')
 
 
 class User(BaseModel, Base):
     """
-    Representation of a user with secure password storage.
+    User class handles all application users
     """
 
-    if models.storage == 'db':
+    if STORAGE_TYPE == "db":
         __tablename__ = 'users'
         email = Column(String(128), nullable=False)
         password = Column(String(128), nullable=False)
         first_name = Column(String(128), nullable=True)
         last_name = Column(String(128), nullable=True)
-        places = relationship("Place", backref="user")
-        reviews = relationship("Review", backref="user")
+
+        places = relationship('Place', backref='user', cascade='delete')
+        reviews = relationship('Review', backref='user', cascade='delete')
     else:
-        email = ""
-        password = ""
-        first_name = ""
-        last_name = ""
+        email = ''
+        password = ''
+        first_name = ''
+        last_name = ''
 
     def __init__(self, *args, **kwargs):
         """
-        Initializes a user instance.
+        Instantiates a User object.
+
+        Parameters:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Exceptions:
+            None.
         """
         try:
+            if kwargs:
+                pwd = kwargs.pop('password', None)
+                if pwd:
+                    User.__set_password(self, pwd)
             super().__init__(*args, **kwargs)
-
-            if models.storage_t == 'db':
-                self.password = kwargs.get('password', "")
-
         except Exception as e:
-            raise Exception("Error initializing user: " + str(e))
+            print(f"An error occurred during User initialization: {str(e)}")
 
-    @property
-    def password(self):
+    def __set_password(self, pwd):
         """
-        Getter method for password.
-        """
-        return self.__password
+        Custom setter: Encrypts the password to MD5.
 
-    @password.setter
-    def password(self, password):
-        """
-        Setter method for password. Hashes the password to an MD5 value.
+        Parameters:
+            pwd (str): The password to be encrypted.
+
+        Exceptions:
+            None.
         """
         try:
-            if password:
-                encoded_password = password.encode('utf-8')
-                hashed_password = hashlib.md5(encoded_password).hexdigest()
-                self.__password = hashed_password
-
+            secure = hashlib.md5()
+            secure.update(pwd.encode("utf-8"))
+            secure_password = secure.hexdigest()
+            setattr(self, "password", secure_password)
         except Exception as e:
-            raise Exception("Error setting password: " + str(e))
+            print(f"An error occurred during password encryption: {str(e)}")
