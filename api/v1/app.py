@@ -2,7 +2,7 @@
 """
 Script that imports a Blueprint and runs Flask
 """
-from flask import Flask, make_response, jsonify
+from flask import Flask, make_response, jsonify, abort
 from flask_cors import CORS
 from models import storage
 from api.v1.views import app_views
@@ -12,6 +12,7 @@ app = Flask(__name__)
 app.register_blueprint(app_views)
 CORS(app, resources={r"/*": {"origins": "0.0.0.0"}})
 
+
 @app.teardown_appcontext
 def teardown_session(exception):
     """
@@ -20,7 +21,8 @@ def teardown_session(exception):
     try:
         storage.close()
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500)
+
 
 @app.errorhandler(404)
 def not_found(error):
@@ -28,6 +30,7 @@ def not_found(error):
     Returns a JSON response with a 404 status
     """
     return make_response(jsonify({"error": "Not found"}), 404)
+
 
 if __name__ == '__main__':
     try:
@@ -38,4 +41,4 @@ if __name__ == '__main__':
         port = 5000 if not HBNB_API_PORT else HBNB_API_PORT
         app.run(host=host, port=port, threaded=True)
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500)
