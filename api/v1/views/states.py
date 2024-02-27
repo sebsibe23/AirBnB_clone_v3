@@ -1,6 +1,5 @@
 #!/usr/bin/python3
-'''view for State objects that handles all default
-RESTFUL API actions'''
+'''view for State objects that handles all default RESTFUL API actions'''
 
 from models.state import State
 from models import storage
@@ -8,8 +7,7 @@ from flask import abort, make_response, jsonify, request
 from api.v1.views import app_views
 
 
-@app_views.route('/states', methods=['GET', 'POST'],
-                 strict_slashes=False)
+@app_views.route('/states', methods=['GET', 'POST'], strict_slashes=False)
 def get_states():
     ''' manages state request '''
     try:
@@ -26,22 +24,19 @@ def get_states():
         if request.method == 'POST':
             content_type = request.headers.get('Content-Type')
             if (content_type == 'application/json'):
-                try:
-                    body = request.get_json()
-                    if "name" not in body:
-                        abort(400, description='Missing name')
-                    else:
-                        new_state = State(**body)
-                        storage.new(new_state)
-                        storage.save()
-                        return make_response(jsonify(new_state.to_dict()),
-                                             201)
-                except Exception as e:
-                    abort(400, description='Invalid JSON data')
+                body = request.get_json()
+                if "name" not in body:
+                    abort(400, description='Missing name')
+                else:
+                    new_state = State(**body)
+                    storage.new(new_state)
+                    storage.save()
+                    return make_response(jsonify(new_state.to_dict()), 201)
             else:
                 abort(400, description='Not a JSON')
     except Exception as e:
-        abort(500)
+        # Handle the exception here
+        return make_response(jsonify({'error': str(e)}), 500)
 
 
 @app_views.route('/states/<state_id>', methods=['GET', 'DELETE', 'PUT'],
@@ -69,17 +64,14 @@ def get_state_by_id(state_id):
                 abort(404)
             content_type = request.headers.get('Content-Type')
             if content_type == 'application/json':
-                try:
-                    body = request.get_json()
-                    for key, value in body.items():
-                        if key != 'id' or key != 'created_at' or
-                        key != 'updated_at':
-                            setattr(state_obj, key, value)
-                    storage.save()
-                    return make_response(jsonify(state_obj.to_dict()), 200)
-                except Exception as e:
-                    abort(400, description='Invalid JSON data')
+                body = request.get_json()
+                for key, value in body.items():
+                    if key not in ('id', 'created_at', 'updated_at'):
+                        setattr(state_obj, key, value)
+                storage.save()
+                return make_response(jsonify(state_obj.to_dict()), 200)
             else:
                 abort(400, description='Not a JSON')
     except Exception as e:
-        abort(500)
+        # Handle the exception here
+        return make_response(jsonify({'error': str(e)}), 500)
