@@ -1,45 +1,43 @@
 #!/usr/bin/python3
-"""
-Flask route that returns JSON status response
-"""
+'''
+Use Blueprint instance
+'''
 from api.v1.views import app_views
-from flask import jsonify, request
+from flask import jsonify
 from models import storage
+from models.amenity import Amenity
+from models.city import City
+from models.place import Place
+from models.review import Review
+from models.state import State
+from models.user import User
 
 
-@app_views.route('/status', methods=['GET'])
-def status():
-    """
-    Function for the status route that returns the status
-    """
+@app_views.route('/status', methods=['GET'], strict_slashes=False)
+def return_status():
+    '''
+    Returns the status code
+    '''
     try:
-        if request.method == 'GET':
-            resp = {"status": "OK"}
-            return jsonify(resp)
+        return jsonify(status="OK")
     except Exception as e:
-        # Handle specific exception or log the error
-        pass
+        return jsonify(error=str(e)), 500
 
 
-@app_views.route('/stats', methods=['GET'])
-def stats():
-    """
-    Function to return the count of all class objects
-    """
+@app_views.route('/stats', strict_slashes=False)
+def obj_count():
+    '''
+    Returns the count of objects
+    '''
     try:
-        if request.method == 'GET':
-            response = {}
-            PLURALS = {
-                "Amenity": "amenities",
-                "City": "cities",
-                "Place": "places",
-                "Review": "reviews",
-                "State": "states",
-                "User": "users"
-            }
-            for key, value in PLURALS.items():
-                response[value] = storage.count(key)
-            return jsonify(response)
+        amenity = storage.count(Amenity)
+        city = storage.count(City)
+        place = storage.count(Place)
+        review = storage.count(Review)
+        state = storage.count(State)
+        user = storage.count(User)
+        object_dict = {'amenities': amenity, 'cities': city, 'places': place,
+                       'reviews': review, 'states': state, 'users': user}
+        return jsonify(object_dict)
     except Exception as e:
-        # Handle specific exception or log the error
-        pass
+        return jsonify(error=str(e)), 500
